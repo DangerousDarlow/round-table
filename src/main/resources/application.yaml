@@ -1,3 +1,5 @@
+redis:
+  redisUrl: ${REDIS_URL:localhost}
 server:
   servlet:
     context-path: /api
