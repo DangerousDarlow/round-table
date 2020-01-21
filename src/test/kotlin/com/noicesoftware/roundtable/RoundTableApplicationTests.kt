@@ -75,7 +75,7 @@ class RoundTableApplicationTests {
 
     @Test
     fun five_player_game() {
-        // anna creates the same, all other players join
+        // anna creates the game, all other players join
         val id = createGame(anna).id
         players.drop(1).forEach { joinGame(id, it) }
 
