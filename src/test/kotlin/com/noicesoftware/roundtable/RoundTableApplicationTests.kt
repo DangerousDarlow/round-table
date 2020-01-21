@@ -31,7 +31,7 @@ class RoundTableApplicationTests {
 
     private fun createGame(player: Player): Game {
         val response = restTemplate.postForEntity("${host()}/api/game/create", HttpEntity(player), Game::class.java)
-        assertThat(response.statusCode, name = "response status (${player.name})").isEqualTo(HttpStatus.OK)
+        assertThat(response.statusCode, name = "response status (${player.name})").isEqualTo(HttpStatus.CREATED)
         assertThat(response.body, name = "response body (${player.name})").isNotNull()
         return response.body!!
     }
