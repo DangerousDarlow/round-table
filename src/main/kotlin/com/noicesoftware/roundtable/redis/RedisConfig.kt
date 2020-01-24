@@ -6,5 +6,6 @@ import org.springframework.boot.context.properties.ConstructorBinding
 @ConstructorBinding
 @ConfigurationProperties("redis")
 data class RedisConfig(
-        val redisUrl: String
+        val url: String,
+        val defaultDuration: Long
 )

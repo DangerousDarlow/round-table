@@ -12,9 +12,12 @@ import java.util.UUID
 @Component
 class GameRepository(
         val redisTemplate: RedisTemplate<String, Game>,
-        val logger: Logger
+        val logger: Logger,
+        redisConfig: RedisConfig
 ) {
     private fun buildGameKey(id: UUID) = "game-$id"
+
+    var defaultDuration: Duration = Duration.ofHours(redisConfig.defaultDuration)
 
     fun get(id: UUID): Game {
         try {
@@ -28,7 +31,7 @@ class GameRepository(
 
     fun set(game: Game) {
         try {
-            redisTemplate.opsForValue().set(buildGameKey(game.id), game, Duration.ofMinutes(10))
+            redisTemplate.opsForValue().set(buildGameKey(game.id), game, defaultDuration)
         } catch (e: Exception) {
             logger.error("Failed to get game '${game.id}' from redis: $e")
             throw e

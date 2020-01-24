@@ -19,15 +19,15 @@ class RedisTemplateConfig(
 ) {
     @Bean
     fun connectionFactory(): LettuceConnectionFactory {
-        logger.info("redis url: ${configuration.redisUrl}")
+        logger.info("redis url: ${configuration.url}")
 
         return try {
-            val uri = RedisURI.create(configuration.redisUrl)
+            val uri = RedisURI.create(configuration.url)
             val config = RedisStandaloneConfiguration(uri.host, uri.port)
             config.setPassword(uri.password)
             LettuceConnectionFactory(config)
         } catch (e: Exception) {
-            val config = RedisStandaloneConfiguration(configuration.redisUrl)
+            val config = RedisStandaloneConfiguration(configuration.url)
             LettuceConnectionFactory(config)
         }
     }

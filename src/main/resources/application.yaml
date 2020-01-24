@@ -1,5 +1,6 @@
 redis:
-  redisUrl: ${REDIS_URL:localhost}
+  url: ${REDIS_URL:localhost}
+  defaultDuration: ${REDIS_DEFAULT_DURATION:24}
 server:
   servlet:
     context-path: /api
