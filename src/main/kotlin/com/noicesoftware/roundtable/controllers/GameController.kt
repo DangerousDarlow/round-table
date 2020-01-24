@@ -32,7 +32,7 @@ class GameController(
                 players = listOf(player)
         )
 
-        logger.info("Create game ${game.id}: player ${player.name} ${player.id}")
+        logger.info("Create game ${game.toLogStr()}: player ${player.toLogStr()}")
 
         gameRepository.set(game)
         return game
@@ -41,7 +41,7 @@ class GameController(
     @PostMapping("{id}/join")
     fun join(@PathVariable id: UUID, @RequestBody player: Player): Game {
         val oldGame = gameRepository.get(id)
-        logger.info("Join game ${oldGame.id}: player ${player.name} ${player.id}")
+        logger.info("Join game ${oldGame.toLogStr()}: player ${player.toLogStr()}")
 
         if (oldGame.players.map { it.id }.contains(player.id))
             return oldGame

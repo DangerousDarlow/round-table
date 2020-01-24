@@ -7,4 +7,6 @@ data class Game(
         val id: UUID,
         val created: OffsetDateTime,
         val players: List<Player>
-)
+) {
+    fun toLogStr() = "($id)"
+}

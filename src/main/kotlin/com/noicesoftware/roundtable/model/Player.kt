@@ -5,4 +5,6 @@ import java.util.UUID
 data class Player(
         val id: UUID,
         val name: String
-)
+) {
+    fun toLogStr() = "$name ($id)"
+}
