@@ -6,7 +6,7 @@ import java.util.UUID
 data class Game(
         val id: UUID,
         val created: OffsetDateTime,
-        val players: List<Player>
+        val players: Map<UUID, Player>
 ) {
     fun toLogStr() = "($id)"
 }

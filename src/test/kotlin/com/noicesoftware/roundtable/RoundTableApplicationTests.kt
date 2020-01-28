@@ -30,7 +30,12 @@ class RoundTableApplicationTests {
     private final val dave: Player = Player(UUID.fromString("8ac39b82-d14e-44d9-a5a9-d17667273405"), name = "dave")
     private final val emma: Player = Player(UUID.fromString("5565cbad-d72d-474d-a154-6449ef32cc79"), name = "emma")
 
-    val players = listOf(anna, bill, caia, dave, emma)
+    val players = mapOf(
+            anna.id to anna,
+            bill.id to bill,
+            caia.id to caia,
+            dave.id to dave,
+            emma.id to emma)
 
     private fun host(): String = "http://localhost:$port"
 
@@ -73,7 +78,7 @@ class RoundTableApplicationTests {
     fun five_player_game() {
         // anna creates the game, all other players join
         val id = createGame(anna)
-        players.drop(1).forEach { joinGame(id, it) }
+        players.forEach { entry -> if (entry.key != anna.id) joinGame(id, entry.value) }
 
         val game = getGame(id)
         assertThat(game.id).isEqualTo(id)

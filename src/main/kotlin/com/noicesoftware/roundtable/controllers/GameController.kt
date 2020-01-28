@@ -31,7 +31,7 @@ class GameController(
         val game = Game(
                 id = UUID.randomUUID(),
                 created = OffsetDateTime.now(ZoneOffset.UTC),
-                players = listOf(player)
+                players = mapOf(player.id to player)
         )
 
         logger.info("Create game ${game.toLogStr()}: player ${player.toLogStr()}")
@@ -46,10 +46,10 @@ class GameController(
         val player = Player(playerId, playerName)
         logger.info("Join game ${oldGame.toLogStr()}: player ${player.toLogStr()}")
 
-        if (oldGame.players.map { it.id }.contains(player.id))
+        if (oldGame.players.containsKey(player.id))
             return
 
-        val newGame = oldGame.copy(players = oldGame.players.plus(player))
+        val newGame = oldGame.copy(players = oldGame.players.plus(player.id to player))
         gameRepository.set(newGame)
     }
 
