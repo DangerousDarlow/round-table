@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
@@ -25,7 +26,8 @@ class GameController(
 
     @PostMapping("create")
     @ResponseStatus(HttpStatus.CREATED)
-    fun create(@RequestBody player: Player): Game {
+    fun create(@RequestHeader(PLAYER_HEADER) playerId: UUID, @RequestBody playerName: String): UUID {
+        val player = Player(playerId, playerName)
         val game = Game(
                 id = UUID.randomUUID(),
                 created = OffsetDateTime.now(ZoneOffset.UTC),
@@ -35,22 +37,26 @@ class GameController(
         logger.info("Create game ${game.toLogStr()}: player ${player.toLogStr()}")
 
         gameRepository.set(game)
-        return game
+        return game.id
     }
 
     @PostMapping("{id}/join")
-    fun join(@PathVariable id: UUID, @RequestBody player: Player): Game {
+    fun join(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID, @RequestBody playerName: String) {
         val oldGame = gameRepository.get(id)
+        val player = Player(playerId, playerName)
         logger.info("Join game ${oldGame.toLogStr()}: player ${player.toLogStr()}")
 
         if (oldGame.players.map { it.id }.contains(player.id))
-            return oldGame
+            return
 
         val newGame = oldGame.copy(players = oldGame.players.plus(player))
         gameRepository.set(newGame)
-        return newGame
     }
 
     @GetMapping("{id}")
     fun get(@PathVariable id: UUID): Game = gameRepository.get(id)
+
+    companion object {
+        const val PLAYER_HEADER = "x-player"
+    }
 }
