@@ -2,6 +2,8 @@ package com.noicesoftware.roundtable.controllers
 
 import com.noicesoftware.roundtable.model.Game
 import com.noicesoftware.roundtable.model.Player
+import com.noicesoftware.roundtable.model.PlayersResponse
+import com.noicesoftware.roundtable.model.RedactedPlayer
 import com.noicesoftware.roundtable.redis.GameRepository
 import org.slf4j.Logger
 import org.springframework.http.HttpStatus
@@ -44,6 +46,7 @@ class GameController(
     fun join(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID, @RequestBody playerName: String) {
         val oldGame = gameRepository.get(id)
         val player = Player(playerId, playerName)
+
         logger.info("Join game ${oldGame.toLogStr()}: player ${player.toLogStr()}")
 
         if (oldGame.players.containsKey(player.id))
@@ -53,8 +56,13 @@ class GameController(
         gameRepository.set(newGame)
     }
 
-    @GetMapping("{id}")
-    fun get(@PathVariable id: UUID): Game = gameRepository.get(id)
+    @GetMapping("{id}/players")
+    fun getPlayers(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID): PlayersResponse {
+        val game = gameRepository.get(id)
+        return PlayersResponse(
+                you = game.players[playerId],
+                others = game.players.map { entry -> RedactedPlayer(entry.value.name) })
+    }
 
     companion object {
         const val PLAYER_HEADER = "x-player"

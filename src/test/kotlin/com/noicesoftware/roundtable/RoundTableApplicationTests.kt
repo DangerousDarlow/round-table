@@ -4,8 +4,9 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
-import com.noicesoftware.roundtable.model.Game
 import com.noicesoftware.roundtable.model.Player
+import com.noicesoftware.roundtable.model.PlayersResponse
+import com.noicesoftware.roundtable.model.RedactedPlayer
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -13,6 +14,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import java.util.UUID
 
@@ -30,7 +32,7 @@ class RoundTableApplicationTests {
     private final val dave: Player = Player(UUID.fromString("8ac39b82-d14e-44d9-a5a9-d17667273405"), name = "dave")
     private final val emma: Player = Player(UUID.fromString("5565cbad-d72d-474d-a154-6449ef32cc79"), name = "emma")
 
-    val players = mapOf(
+    val testPlayers = mapOf(
             anna.id to anna,
             bill.id to bill,
             caia.id to caia,
@@ -66,26 +68,29 @@ class RoundTableApplicationTests {
         assertThat(response.body, name = "response body (${player.name})").isNull()
     }
 
-    private fun getGame(id: UUID): Game {
-        val response = restTemplate.getForEntity("${host()}/api/game/$id", Game::class.java)
+    private fun getPlayers(id: UUID, player: Player): PlayersResponse {
+        val response = restTemplate.exchange(
+                "${host()}/api/game/$id/players",
+                HttpMethod.GET,
+                HttpEntity<Any>(player.header()),
+                PlayersResponse::class.java)
+
         assertThat(response.statusCode, name = "response status").isEqualTo(HttpStatus.OK)
         assertThat(response.body, name = "response body").isNotNull()
         return response.body!!
     }
 
-
     @Test
     fun five_player_game() {
-        // anna creates the game, all other players join
         val id = createGame(anna)
-        players.forEach { entry -> if (entry.key != anna.id) joinGame(id, entry.value) }
 
-        val game = getGame(id)
-        assertThat(game.id).isEqualTo(id)
-        assertThat(game.players).isEqualTo(players)
+        // anna doesn't join the game twice. joining a game a player is already in has no effect.
+        testPlayers.forEach { joinGame(id, it.value) }
 
-        // joining a game a player is already in has no effect
-        joinGame(id, emma)
-        assertThat(getGame(id).players.count(), name = "player count").isEqualTo(players.count())
+        val players = getPlayers(id, anna)
+        assertThat(players.you).isEqualTo(anna)
+
+        // TODO others should not include the player making the api call
+        assertThat(players.others).isEqualTo(testPlayers.map { RedactedPlayer(it.value.name) })
     }
 }
