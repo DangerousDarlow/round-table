@@ -33,7 +33,7 @@ class GameRepository(
         try {
             redisTemplate.opsForValue().set(buildGameKey(game.id), game, defaultDuration)
         } catch (e: Exception) {
-            logger.error("Failed to get game '${game.id}' from redis: $e")
+            logger.error("Failed to set game '${game.id}' from redis: $e")
             throw e
         }
     }
