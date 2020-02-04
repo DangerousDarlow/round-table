@@ -17,7 +17,7 @@ class GameRepository(
 ) {
     private fun buildGameKey(id: UUID) = "game-$id"
 
-    var defaultDuration: Duration = Duration.ofHours(redisConfig.defaultDuration)
+    var defaultDuration: Duration = Duration.ofMinutes(redisConfig.defaultDuration)
 
     fun get(id: UUID): Game {
         try {
