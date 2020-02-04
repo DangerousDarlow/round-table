@@ -2,8 +2,7 @@ package com.noicesoftware.roundtable
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import assertk.assertions.isNotNull
-import assertk.assertions.isNull
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.noicesoftware.roundtable.model.Player
 import com.noicesoftware.roundtable.model.PlayersResponse
 import com.noicesoftware.roundtable.model.RedactedPlayer
@@ -26,11 +25,16 @@ class RoundTableApplicationTests {
     @Autowired
     lateinit var restTemplate: TestRestTemplate
 
+    @Autowired
+    lateinit var objectMapper: ObjectMapper
+
     private final val anna: Player = Player(UUID.fromString("7ed19a9c-b9d1-485d-8671-54980efc79ff"), name = "anna")
     private final val bill: Player = Player(UUID.fromString("96942c94-b0c7-4b9f-bf9f-35d96c014646"), name = "bill")
     private final val caia: Player = Player(UUID.fromString("e362f443-3b25-46b0-95a7-da7df590ca39"), name = "caia")
     private final val dave: Player = Player(UUID.fromString("8ac39b82-d14e-44d9-a5a9-d17667273405"), name = "dave")
     private final val emma: Player = Player(UUID.fromString("5565cbad-d72d-474d-a154-6449ef32cc79"), name = "emma")
+
+    private final val playerNotInGame: Player = Player(UUID.fromString("346cebd1-92f4-4f91-83ae-7a7cc544d766"), name = "fred")
 
     val testPlayers = mapOf(
             anna.id to anna,
@@ -54,7 +58,6 @@ class RoundTableApplicationTests {
                 UUID::class.java)
 
         assertThat(response.statusCode, name = "response status (${player.name})").isEqualTo(HttpStatus.CREATED)
-        assertThat(response.body, name = "response body (${player.name})").isNotNull()
         return response.body!!
     }
 
@@ -65,20 +68,26 @@ class RoundTableApplicationTests {
                 Void::class.java)
 
         assertThat(response.statusCode, name = "response status (${player.name})").isEqualTo(HttpStatus.OK)
-        assertThat(response.body, name = "response body (${player.name})").isNull()
     }
 
-    private fun getPlayers(id: UUID, player: Player): PlayersResponse {
+    private fun getPlayers(id: UUID, player: Player, status: HttpStatus): PlayersResponse? {
         val response = restTemplate.exchange(
                 "${host()}/api/game/$id/players",
                 HttpMethod.GET,
                 HttpEntity<Any>(player.header()),
-                PlayersResponse::class.java)
+                String::class.java)
 
-        assertThat(response.statusCode, name = "response status").isEqualTo(HttpStatus.OK)
-        assertThat(response.body, name = "response body").isNotNull()
-        return response.body!!
+        assertThat(response.statusCode, name = "response status").isEqualTo(status)
+        return if (response.statusCode.is2xxSuccessful)
+            objectMapper.readValue(response.body, PlayersResponse::class.java)
+        else
+            null
     }
+
+    private fun getPlayersSucceeds(id: UUID, player: Player): PlayersResponse = getPlayers(id, player, HttpStatus.OK)
+            ?: throw Exception("Failed to deserialise response body")
+
+    private fun getPlayersReturnsNotFound(id: UUID, player: Player) = getPlayers(id, player, HttpStatus.NOT_FOUND)
 
     @Test
     fun five_player_game() {
@@ -87,10 +96,11 @@ class RoundTableApplicationTests {
         // anna doesn't join the game twice. joining a game a player is already in has no effect.
         testPlayers.forEach { joinGame(id, it.value) }
 
-        val players = getPlayers(id, anna)
+        val players = getPlayersSucceeds(id, anna)
         assertThat(players.you).isEqualTo(anna)
+        assertThat(players.others).isEqualTo(
+                testPlayers.filter { it.value.id != anna.id }.map { RedactedPlayer(it.value.name) })
 
-        // TODO others should not include the player making the api call
-        assertThat(players.others).isEqualTo(testPlayers.map { RedactedPlayer(it.value.name) })
+        getPlayersReturnsNotFound(id, playerNotInGame)
     }
 }

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -59,9 +60,15 @@ class GameController(
     @GetMapping("{id}/players")
     fun getPlayers(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID): PlayersResponse {
         val game = gameRepository.get(id)
+
+        if (!game.players.containsKey(playerId)) {
+            logger.warn("Game ${game.toLogStr()} does not contain player ($playerId)")
+            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        }
+
         return PlayersResponse(
                 you = game.players[playerId],
-                others = game.players.map { entry -> RedactedPlayer(entry.value.name) })
+                others = game.players.filter { it.key != playerId }.map { RedactedPlayer(it.value.name) })
     }
 
     companion object {
