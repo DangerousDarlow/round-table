@@ -34,8 +34,6 @@ class RoundTableApplicationTests {
     private final val dave: Player = Player(UUID.fromString("8ac39b82-d14e-44d9-a5a9-d17667273405"), name = "dave")
     private final val emma: Player = Player(UUID.fromString("5565cbad-d72d-474d-a154-6449ef32cc79"), name = "emma")
 
-    private final val playerNotInGame: Player = Player(UUID.fromString("346cebd1-92f4-4f91-83ae-7a7cc544d766"), name = "fred")
-
     val testPlayers = mapOf(
             anna.id to anna,
             bill.id to bill,
@@ -61,16 +59,17 @@ class RoundTableApplicationTests {
         return response.body!!
     }
 
-    private fun joinGame(id: UUID, player: Player) {
+    private fun joinGame(id: UUID, player: Player) : HttpStatus {
         val response = restTemplate.postForEntity(
                 "${host()}/api/game/$id/join",
                 HttpEntity(player.name, player.header()),
                 Void::class.java)
 
-        assertThat(response.statusCode, name = "response status (${player.name})").isEqualTo(HttpStatus.OK)
+        return response.statusCode
     }
 
-    private fun getPlayers(id: UUID, player: Player, status: HttpStatus): PlayersResponse? {
+
+    private fun players(id: UUID, player: Player, status: HttpStatus): PlayersResponse? {
         val response = restTemplate.exchange(
                 "${host()}/api/game/$id/players",
                 HttpMethod.GET,
@@ -84,23 +83,35 @@ class RoundTableApplicationTests {
             null
     }
 
-    private fun getPlayersSucceeds(id: UUID, player: Player): PlayersResponse = getPlayers(id, player, HttpStatus.OK)
+    private fun playersSucceeds(id: UUID, player: Player): PlayersResponse = players(id, player, HttpStatus.OK)
             ?: throw Exception("Failed to deserialise response body")
 
-    private fun getPlayersReturnsNotFound(id: UUID, player: Player) = getPlayers(id, player, HttpStatus.NOT_FOUND)
+    private fun playersReturnsNotFound(id: UUID, player: Player) = players(id, player, HttpStatus.NOT_FOUND)
 
     @Test
     fun five_player_game() {
         val id = createGame(anna)
 
         // anna doesn't join the game twice. joining a game a player is already in has no effect.
-        testPlayers.forEach { joinGame(id, it.value) }
+        testPlayers.forEach {
+            assertThat(joinGame(id, it.value), name = "join response status (${it.value.name})").isEqualTo(HttpStatus.OK)
+        }
 
-        val players = getPlayersSucceeds(id, anna)
+        val players = playersSucceeds(id, anna)
         assertThat(players.you).isEqualTo(anna)
         assertThat(players.others).isEqualTo(
                 testPlayers.filter { it.value.id != anna.id }.map { RedactedPlayer(it.value.name) })
+    }
 
-        getPlayersReturnsNotFound(id, playerNotInGame)
+    @Test
+    fun cannot_join_a_game_that_does_not_exist() {
+        val id = UUID.fromString("a4734cfa-b231-4571-a8ef-c19d5526525b")
+        assertThat(joinGame(id, anna), name = "join response status").isEqualTo(HttpStatus.NOT_FOUND)
+    }
+
+    @Test
+    fun player_not_in_game_cannot_get_players() {
+        val id = createGame(anna)
+        playersReturnsNotFound(id, bill)
     }
 }

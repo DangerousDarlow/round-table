@@ -23,8 +23,13 @@ class GameRepository(
         try {
             val key = buildGameKey(id)
             return redisTemplate.opsForValue().get(key) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        } catch (e: ResponseStatusException) {
+            if (e.status != HttpStatus.NOT_FOUND)
+                logger.error("Failed to get game '$id' from redis: $e")
+
+            throw e
         } catch (e: Exception) {
-            logger.warn("Failed to get game '$id' from redis: $e")
+            logger.error("Failed to get game '$id' from redis: $e")
             throw e
         }
     }

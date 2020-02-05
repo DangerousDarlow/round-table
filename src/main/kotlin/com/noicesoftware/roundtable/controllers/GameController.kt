@@ -48,23 +48,20 @@ class GameController(
         val oldGame = gameRepository.get(id)
         val player = Player(playerId, playerName)
 
-        logger.info("Join game ${oldGame.toLogStr()}: player ${player.toLogStr()}")
-
         if (oldGame.players.containsKey(player.id))
             return
 
+        logger.info("Join game ${oldGame.toLogStr()}: player ${player.toLogStr()}")
         val newGame = oldGame.copy(players = oldGame.players.plus(player.id to player))
         gameRepository.set(newGame)
     }
 
     @GetMapping("{id}/players")
-    fun getPlayers(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID): PlayersResponse {
+    fun players(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID): PlayersResponse {
         val game = gameRepository.get(id)
 
-        if (!game.players.containsKey(playerId)) {
-            logger.warn("Game ${game.toLogStr()} does not contain player ($playerId)")
+        if (!game.players.containsKey(playerId))
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        }
 
         return PlayersResponse(
                 you = game.players[playerId],
