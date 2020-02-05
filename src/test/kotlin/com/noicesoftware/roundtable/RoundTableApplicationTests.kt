@@ -2,6 +2,8 @@ package com.noicesoftware.roundtable
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNotNull
+import assertk.assertions.isNullOrEmpty
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.noicesoftware.roundtable.model.Player
 import com.noicesoftware.roundtable.model.PlayersResponse
@@ -49,51 +51,63 @@ class RoundTableApplicationTests {
         return headers
     }
 
-    private fun createGame(player: Player): UUID {
+    private fun createGame(player: Player, header: HttpHeaders = player.header()): Pair<HttpStatus, UUID?> {
         val response = restTemplate.postForEntity(
                 "${host()}/api/game/create",
-                HttpEntity(player.name, player.header()),
-                UUID::class.java)
+                HttpEntity(player.name, header),
+                String::class.java)
 
-        assertThat(response.statusCode, name = "response status (${player.name})").isEqualTo(HttpStatus.CREATED)
-        return response.body!!
+        return if (response.statusCode.is2xxSuccessful)
+            Pair(response.statusCode, objectMapper.readValue(response.body, UUID::class.java))
+        else
+            Pair(response.statusCode, null)
     }
 
-    private fun joinGame(id: UUID, player: Player) : HttpStatus {
+    private fun createGameAndReturnId(player: Player): UUID {
+        val (status, id) = createGame(player)
+        assertThat(status, name = "create response status").isEqualTo(HttpStatus.CREATED)
+        assertThat(id, name = "create game id").isNotNull()
+        return id!!
+    }
+
+    private fun joinGame(id: UUID, player: Player, header: HttpHeaders = player.header()): HttpStatus {
         val response = restTemplate.postForEntity(
                 "${host()}/api/game/$id/join",
-                HttpEntity(player.name, player.header()),
+                HttpEntity(player.name, header),
                 Void::class.java)
 
         return response.statusCode
     }
 
+    private fun players(
+            id: UUID,
+            player: Player,
+            header: HttpHeaders = player.header()
+    ): Pair<HttpStatus, PlayersResponse?> {
 
-    private fun players(id: UUID, player: Player, status: HttpStatus): PlayersResponse? {
         val response = restTemplate.exchange(
                 "${host()}/api/game/$id/players",
                 HttpMethod.GET,
-                HttpEntity<Any>(player.header()),
+                HttpEntity<Any>(header),
                 String::class.java)
 
-        assertThat(response.statusCode, name = "response status").isEqualTo(status)
         return if (response.statusCode.is2xxSuccessful)
-            objectMapper.readValue(response.body, PlayersResponse::class.java)
+            Pair(response.statusCode, objectMapper.readValue(response.body, PlayersResponse::class.java))
         else
-            null
+            Pair(response.statusCode, null)
     }
 
-    private fun playersSucceeds(id: UUID, player: Player): PlayersResponse = players(id, player, HttpStatus.OK)
-            ?: throw Exception("Failed to deserialise response body")
-
-    private fun playersReturnsNotFound(id: UUID, player: Player) = players(id, player, HttpStatus.NOT_FOUND)
+    private fun playersSucceeds(id: UUID, player: Player): PlayersResponse {
+        val (status, players) = players(id, player)
+        assertThat(status, name = "players response status").isEqualTo(HttpStatus.OK)
+        return players!!
+    }
 
     @Test
     fun five_player_game() {
-        val id = createGame(anna)
+        val id = createGameAndReturnId(anna)
 
-        // anna doesn't join the game twice. joining a game a player is already in has no effect.
-        testPlayers.forEach {
+        testPlayers.filter { it.value != anna }.forEach {
             assertThat(joinGame(id, it.value), name = "join response status (${it.value.name})").isEqualTo(HttpStatus.OK)
         }
 
@@ -104,14 +118,47 @@ class RoundTableApplicationTests {
     }
 
     @Test
+    fun cannot_create_a_game_if_player_header_is_not_set() {
+        val (status, _) = createGame(anna, HttpHeaders())
+        assertThat(status, name = "create response status").isEqualTo(HttpStatus.BAD_REQUEST)
+    }
+
+    @Test
+    fun cannot_join_a_game_if_player_header_is_not_set() {
+        val id = createGameAndReturnId(anna)
+        val status = joinGame(id, bill, HttpHeaders())
+        assertThat(status, name = "join response status").isEqualTo(HttpStatus.BAD_REQUEST)
+    }
+
+    @Test
     fun cannot_join_a_game_that_does_not_exist() {
         val id = UUID.fromString("a4734cfa-b231-4571-a8ef-c19d5526525b")
-        assertThat(joinGame(id, anna), name = "join response status").isEqualTo(HttpStatus.NOT_FOUND)
+        val status = joinGame(id, anna)
+        assertThat(status, name = "join response status").isEqualTo(HttpStatus.NOT_FOUND)
+    }
+
+    @Test
+    fun joining_a_game_player_is_already_in_has_no_affect() {
+        val id = createGameAndReturnId(anna)
+        assertThat(joinGame(id, anna), name = "first join response status").isEqualTo(HttpStatus.OK)
+        assertThat(joinGame(id, anna), name = "second join response status").isEqualTo(HttpStatus.OK)
+
+        val (status, players) = players(id, anna)
+        assertThat(status, name = "players response status").isEqualTo(HttpStatus.OK)
+        assertThat(players!!.others).isNullOrEmpty()
+    }
+
+    @Test
+    fun cannot_get_players_if_player_header_is_not_set() {
+        val id = createGameAndReturnId(anna)
+        val (status, _) = players(id, anna, HttpHeaders())
+        assertThat(status, name = "players response status").isEqualTo(HttpStatus.BAD_REQUEST)
     }
 
     @Test
     fun player_not_in_game_cannot_get_players() {
-        val id = createGame(anna)
-        playersReturnsNotFound(id, bill)
+        val id = createGameAndReturnId(anna)
+        val (status, _) = players(id, bill)
+        assertThat(status, name = "players response status").isEqualTo(HttpStatus.NOT_FOUND)
     }
 }
