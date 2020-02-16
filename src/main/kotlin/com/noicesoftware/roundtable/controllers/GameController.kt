@@ -1,5 +1,6 @@
 package com.noicesoftware.roundtable.controllers
 
+import com.noicesoftware.roundtable.dealing.DealerStrategy
 import com.noicesoftware.roundtable.model.Game
 import com.noicesoftware.roundtable.model.Player
 import com.noicesoftware.roundtable.model.PlayersResponse
@@ -24,6 +25,7 @@ import java.util.UUID
 @RequestMapping("game")
 class GameController(
         val gameRepository: GameRepository,
+        val dealerStrategy: DealerStrategy,
         val logger: Logger
 ) {
 
@@ -37,23 +39,24 @@ class GameController(
                 players = mapOf(player.id to player)
         )
 
-        logger.info("Create game ${game.toLogStr()}: player ${player.toLogStr()}")
-
         gameRepository.set(game)
+
+        logger.info("Create game ${game.toLogStr()}: player ${player.toLogStr()}")
         return game.id
     }
 
     @PostMapping("{id}/join")
     fun join(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID, @RequestBody playerName: String) {
-        val oldGame = gameRepository.get(id)
+        val game = gameRepository.get(id)
         val player = Player(playerId, playerName)
 
-        if (oldGame.players.containsKey(player.id))
+        if (game.players.containsKey(player.id))
             return
 
-        logger.info("Join game ${oldGame.toLogStr()}: player ${player.toLogStr()}")
-        val newGame = oldGame.copy(players = oldGame.players.plus(player.id to player))
-        gameRepository.set(newGame)
+        val updatedGame = game.copy(players = game.players.plus(player.id to player))
+
+        logger.info("Join game ${game.toLogStr()}: player ${player.toLogStr()}")
+        gameRepository.set(updatedGame)
     }
 
     @GetMapping("{id}/players")
@@ -66,6 +69,19 @@ class GameController(
         return PlayersResponse(
                 you = game.players[playerId],
                 others = game.players.filter { it.key != playerId }.map { RedactedPlayer(it.value.name) })
+    }
+
+    @PostMapping("{id}/deal")
+    fun deal(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID) {
+        val game = gameRepository.get(id)
+
+        if (!game.players.containsKey(playerId))
+            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+
+        val updatedGame = dealerStrategy.dealer().deal(game)
+
+        logger.info("Deal game ${game.toLogStr()}: player ${game.players[playerId]?.toLogStr()}")
+        gameRepository.set(updatedGame)
     }
 
     companion object {
