@@ -19,7 +19,7 @@ class RedisTemplateConfig(
 ) {
     @Bean
     fun connectionFactory(): LettuceConnectionFactory {
-        logger.info("redis url: ${configuration.url}")
+        logger.info("Redis url: ${configuration.url}")
 
         return try {
             val uri = RedisURI.create(configuration.url)

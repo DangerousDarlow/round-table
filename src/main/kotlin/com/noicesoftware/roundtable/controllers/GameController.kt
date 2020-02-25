@@ -1,6 +1,6 @@
 package com.noicesoftware.roundtable.controllers
 
-import com.noicesoftware.roundtable.dealing.DealerStrategy
+import com.noicesoftware.roundtable.dealing.Dealer
 import com.noicesoftware.roundtable.model.Game
 import com.noicesoftware.roundtable.model.Player
 import com.noicesoftware.roundtable.model.PlayersResponse
@@ -25,7 +25,7 @@ import java.util.UUID
 @RequestMapping("game")
 class GameController(
         val gameRepository: GameRepository,
-        val dealerStrategy: DealerStrategy,
+        val dealer: Dealer,
         val logger: Logger
 ) {
 
@@ -67,7 +67,7 @@ class GameController(
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
         return PlayersResponse(
-                you = game.players[playerId],
+                you = game.players[playerId] ?: throw ResponseStatusException(HttpStatus.NOT_FOUND),
                 others = game.players.filter { it.key != playerId }.map { RedactedPlayer(it.value.name) })
     }
 
@@ -78,7 +78,13 @@ class GameController(
         if (!game.players.containsKey(playerId))
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
-        val updatedGame = dealerStrategy.dealer().deal(game)
+        val playerCount = game.players.count()
+        if (playerCount < 5 || playerCount > 10) throw ResponseStatusException(
+                HttpStatus.PRECONDITION_FAILED,
+                "Player count ($playerCount) must be between 5 and 10 inclusive"
+        )
+
+        val updatedGame = dealer.deal(game)
 
         logger.info("Deal game ${game.toLogStr()}: player ${game.players[playerId]?.toLogStr()}")
         gameRepository.set(updatedGame)

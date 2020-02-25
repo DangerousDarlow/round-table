@@ -2,6 +2,7 @@ package com.noicesoftware.roundtable
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNotNull
 import assertk.assertions.isNullOrEmpty
 import com.noicesoftware.roundtable.model.Player
 import com.noicesoftware.roundtable.model.RedactedPlayer
@@ -44,14 +45,25 @@ class RoundTableApplicationTests {
     fun five_player_game() {
         val id = client.createGameAndReturnId(anna)
 
+        // all players except anna join
         testPlayers.filter { it.value != anna }.forEach {
             assertThat(client.joinGame(id, it.value), name = "join response status (${it.value.name})").isEqualTo(HttpStatus.OK)
         }
 
-        val players = client.playersSucceeds(id, anna)
-        assertThat(players.you).isEqualTo(anna)
-        assertThat(players.others).isEqualTo(
-                testPlayers.filter { it.value.id != anna.id }.map { RedactedPlayer(it.value.name) })
+        assertThat(client.deal(id, anna)).isEqualTo(HttpStatus.OK)
+
+        // assert each player can see their details plus an appropriate
+        // amount of information about the other players in the game
+        testPlayers.forEach { (_, player) ->
+            val players = client.playersSucceeds(id, player)
+
+            assertThat(players.you.id).isEqualTo(player.id)
+            assertThat(players.you.name).isEqualTo(player.name)
+            assertThat(players.you.character).isNotNull()
+
+            assertThat(players.others).isEqualTo(
+                    testPlayers.filter { it.value.id != player.id }.map { RedactedPlayer(it.value.name) })
+        }
     }
 
     @Test
@@ -97,5 +109,11 @@ class RoundTableApplicationTests {
         val id = client.createGameAndReturnId(anna)
         val (status, _) = client.players(id, bill)
         assertThat(status, name = "players response status").isEqualTo(HttpStatus.NOT_FOUND)
+    }
+
+    @Test
+    fun cannot_deal_if_less_then_five_players() {
+        val id = client.createGameAndReturnId(anna)
+        assertThat(client.deal(id, anna), name = "deal response status").isEqualTo(HttpStatus.PRECONDITION_FAILED)
     }
 }

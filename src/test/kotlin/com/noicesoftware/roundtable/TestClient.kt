@@ -80,4 +80,13 @@ class TestClient(
         assertThat(status, name = "players response status").isEqualTo(HttpStatus.OK)
         return players!!
     }
+
+    fun deal(id: UUID, player: Player, header: HttpHeaders = player.header()): HttpStatus {
+        val response = restTemplate.postForEntity(
+                "${host()}/api/game/$id/deal",
+                HttpEntity<Any>(header),
+                Void::class.java)
+
+        return response.statusCode
+    }
 }
