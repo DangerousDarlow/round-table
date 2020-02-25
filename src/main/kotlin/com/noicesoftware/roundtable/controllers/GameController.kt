@@ -1,10 +1,13 @@
 package com.noicesoftware.roundtable.controllers
 
 import com.noicesoftware.roundtable.dealing.Dealer
+import com.noicesoftware.roundtable.model.Allegiance
+import com.noicesoftware.roundtable.model.Character
 import com.noicesoftware.roundtable.model.Game
 import com.noicesoftware.roundtable.model.Player
 import com.noicesoftware.roundtable.model.PlayersResponse
 import com.noicesoftware.roundtable.model.RedactedPlayer
+import com.noicesoftware.roundtable.model.allegiance
 import com.noicesoftware.roundtable.redis.GameRepository
 import org.slf4j.Logger
 import org.springframework.http.HttpStatus
@@ -66,9 +69,27 @@ class GameController(
         if (!game.players.containsKey(playerId))
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
+        val you = game.players[playerId] ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
         return PlayersResponse(
-                you = game.players[playerId] ?: throw ResponseStatusException(HttpStatus.NOT_FOUND),
-                others = game.players.filter { it.key != playerId }.map { RedactedPlayer(it.value.name) })
+                you = you,
+                others = redactPlayerInfo(game.players.values, you)
+        )
+    }
+
+    private fun redactPlayerInfo(players: Collection<Player>, you: Player): List<RedactedPlayer> = players
+            .filter { otherPlayer -> otherPlayer.id != you.id }
+            .map { otherPlayer ->
+                RedactedPlayer(otherPlayer.name, allegiance(otherPlayer, you))
+            }
+
+    private fun allegiance(otherPlayer: Player, you: Player): Allegiance? {
+        if (you.character == null || otherPlayer.character == null)
+            return null
+
+        if (you.character == Character.Servant)
+            return null
+
+        return otherPlayer.character!!.allegiance()
     }
 
     @PostMapping("{id}/deal")

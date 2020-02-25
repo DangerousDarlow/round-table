@@ -3,9 +3,10 @@ package com.noicesoftware.roundtable
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
+import assertk.assertions.isNull
 import assertk.assertions.isNullOrEmpty
+import com.noicesoftware.roundtable.model.Character
 import com.noicesoftware.roundtable.model.Player
-import com.noicesoftware.roundtable.model.RedactedPlayer
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -47,7 +48,8 @@ class RoundTableApplicationTests {
 
         // all players except anna join
         testPlayers.filter { it.value != anna }.forEach {
-            assertThat(client.joinGame(id, it.value), name = "join response status (${it.value.name})").isEqualTo(HttpStatus.OK)
+            assertThat(client.joinGame(id, it.value), "join response status (${it.value.name})")
+                    .isEqualTo(HttpStatus.OK)
         }
 
         assertThat(client.deal(id, anna)).isEqualTo(HttpStatus.OK)
@@ -61,39 +63,48 @@ class RoundTableApplicationTests {
             assertThat(players.you.name).isEqualTo(player.name)
             assertThat(players.you.character).isNotNull()
 
-            assertThat(players.others).isEqualTo(
-                    testPlayers.filter { it.value.id != player.id }.map { RedactedPlayer(it.value.name) })
+            // check other players contains the names of all the other players
+            assertThat(players.others.map { it.name })
+                    .isEqualTo(testPlayers.filter { it.value.id != player.id }.values.map { it.name })
+
+            // check servants can't see allegiance and other characters can
+            players.others.forEach { otherPlayer ->
+                if (player.character == Character.Servant)
+                    assertThat(otherPlayer.allegiance).isNull()
+                else
+                    assertThat(otherPlayer).isNotNull()
+            }
         }
     }
 
     @Test
     fun cannot_create_a_game_if_player_header_is_not_set() {
         val (status, _) = client.createGame(anna, HttpHeaders())
-        assertThat(status, name = "create response status").isEqualTo(HttpStatus.BAD_REQUEST)
+        assertThat(status).isEqualTo(HttpStatus.BAD_REQUEST)
     }
 
     @Test
     fun cannot_join_a_game_if_player_header_is_not_set() {
         val id = client.createGameAndReturnId(anna)
         val status = client.joinGame(id, bill, HttpHeaders())
-        assertThat(status, name = "join response status").isEqualTo(HttpStatus.BAD_REQUEST)
+        assertThat(status).isEqualTo(HttpStatus.BAD_REQUEST)
     }
 
     @Test
     fun cannot_join_a_game_that_does_not_exist() {
         val id = UUID.fromString("a4734cfa-b231-4571-a8ef-c19d5526525b")
         val status = client.joinGame(id, anna)
-        assertThat(status, name = "join response status").isEqualTo(HttpStatus.NOT_FOUND)
+        assertThat(status).isEqualTo(HttpStatus.NOT_FOUND)
     }
 
     @Test
     fun joining_a_game_player_is_already_in_has_no_affect() {
         val id = client.createGameAndReturnId(anna)
-        assertThat(client.joinGame(id, anna), name = "first join response status").isEqualTo(HttpStatus.OK)
-        assertThat(client.joinGame(id, anna), name = "second join response status").isEqualTo(HttpStatus.OK)
+        assertThat(client.joinGame(id, anna), "first join response status").isEqualTo(HttpStatus.OK)
+        assertThat(client.joinGame(id, anna), "second join response status").isEqualTo(HttpStatus.OK)
 
         val (status, players) = client.players(id, anna)
-        assertThat(status, name = "players response status").isEqualTo(HttpStatus.OK)
+        assertThat(status).isEqualTo(HttpStatus.OK)
         assertThat(players!!.others).isNullOrEmpty()
     }
 
@@ -101,19 +112,19 @@ class RoundTableApplicationTests {
     fun cannot_get_players_if_player_header_is_not_set() {
         val id = client.createGameAndReturnId(anna)
         val (status, _) = client.players(id, anna, HttpHeaders())
-        assertThat(status, name = "players response status").isEqualTo(HttpStatus.BAD_REQUEST)
+        assertThat(status).isEqualTo(HttpStatus.BAD_REQUEST)
     }
 
     @Test
     fun player_not_in_game_cannot_get_players() {
         val id = client.createGameAndReturnId(anna)
         val (status, _) = client.players(id, bill)
-        assertThat(status, name = "players response status").isEqualTo(HttpStatus.NOT_FOUND)
+        assertThat(status).isEqualTo(HttpStatus.NOT_FOUND)
     }
 
     @Test
     fun cannot_deal_if_less_then_five_players() {
         val id = client.createGameAndReturnId(anna)
-        assertThat(client.deal(id, anna), name = "deal response status").isEqualTo(HttpStatus.PRECONDITION_FAILED)
+        assertThat(client.deal(id, anna)).isEqualTo(HttpStatus.PRECONDITION_FAILED)
     }
 }
