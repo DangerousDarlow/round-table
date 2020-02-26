@@ -35,7 +35,8 @@ class RoundTableApplicationTests {
             bill.id to bill,
             caia.id to caia,
             dave.id to dave,
-            emma.id to emma)
+            emma.id to emma
+    )
 
     @BeforeEach
     fun setPort() {
@@ -120,6 +121,12 @@ class RoundTableApplicationTests {
         val id = client.createGameAndReturnId(anna)
         val (status, _) = client.players(id, bill)
         assertThat(status).isEqualTo(HttpStatus.NOT_FOUND)
+    }
+
+    @Test
+    fun cannot_deal_if_player_header_is_not_set() {
+        val id = client.createGameAndReturnId(anna)
+        assertThat(client.deal(id, anna, HttpHeaders())).isEqualTo(HttpStatus.BAD_REQUEST)
     }
 
     @Test

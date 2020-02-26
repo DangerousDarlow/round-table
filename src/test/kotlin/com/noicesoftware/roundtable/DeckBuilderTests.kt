@@ -5,7 +5,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFailure
 import assertk.assertions.messageContains
 import com.noicesoftware.roundtable.model.Character
-import com.noicesoftware.roundtable.model.DeckBuilder
+import com.noicesoftware.roundtable.dealing.DeckBuilder
 import org.junit.jupiter.api.Test
 
 class DeckBuilderTests {

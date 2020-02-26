@@ -1,7 +1,6 @@
 package com.noicesoftware.roundtable.dealing
 
 import com.noicesoftware.roundtable.model.Character
-import com.noicesoftware.roundtable.model.DeckBuilder
 import com.noicesoftware.roundtable.model.Game
 import org.slf4j.Logger
 import org.springframework.stereotype.Component
@@ -20,7 +19,7 @@ class Dealer(
             val totalLeftToPick = deck.values.sumBy { it }
 
             if (totalLeftToPick == 1) {
-                player.character = deck.filterValues { it != 0 }.keys.first()
+                player.character = deck.filterValues { it != 0 }.keys.single()
             } else {
                 val probabilities = probabilityCalculator.calculate(game, deck, player)
                 player.character = pickCharacter(probabilities)

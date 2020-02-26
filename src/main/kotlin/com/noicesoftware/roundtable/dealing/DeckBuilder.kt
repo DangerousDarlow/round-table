@@ -1,5 +1,6 @@
-package com.noicesoftware.roundtable.model
+package com.noicesoftware.roundtable.dealing
 
+import com.noicesoftware.roundtable.model.Character
 import org.springframework.stereotype.Component
 
 @Component
