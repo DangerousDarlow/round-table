@@ -45,13 +45,7 @@ class RoundTableApplicationTests {
 
     @Test
     fun five_player_game() {
-        val id = client.createGameAndReturnId(anna)
-
-        // all players except anna join
-        testPlayers.filter { it.value != anna }.forEach {
-            assertThat(client.joinGame(id, it.value), "join response status (${it.value.name})")
-                    .isEqualTo(HttpStatus.OK)
-        }
+        val id = createFivePlayerGame()
 
         assertThat(client.deal(id, anna)).isEqualTo(HttpStatus.OK)
 
@@ -76,6 +70,33 @@ class RoundTableApplicationTests {
                     assertThat(otherPlayer).isNotNull()
             }
         }
+    }
+
+    private fun createFivePlayerGame(): UUID {
+        val id = client.createGameAndReturnId(anna)
+
+        // all players except anna join
+        testPlayers.filter { it.value != anna }.forEach {
+            assertThat(client.joinGame(id, it.value), "join response status (${it.value.name})")
+                    .isEqualTo(HttpStatus.OK)
+        }
+
+        return id
+    }
+
+    @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
+    @Test
+    fun five_player_game_probability_distribution_matches_proof() {
+        val id = createFivePlayerGame()
+        val (status, probabilities) = client.probabilities(id, anna)
+        assertThat(status).isEqualTo(HttpStatus.OK)
+
+        assertThat(probabilities).isNotNull()
+        val tolerance = 0.02
+        assertThat(probabilities!!.character[Character.Merlin]!!).isEqualTo(0.20, tolerance)
+        assertThat(probabilities!!.character[Character.Minion]!!).isEqualTo(0.40, tolerance)
+        assertThat(probabilities!!.character[Character.Servant]!!).isEqualTo(0.40, tolerance)
+        assertThat(probabilities!!.consecutive).isEqualTo(0.36, tolerance)
     }
 
     @Test

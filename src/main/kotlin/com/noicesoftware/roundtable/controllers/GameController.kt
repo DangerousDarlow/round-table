@@ -3,6 +3,7 @@ package com.noicesoftware.roundtable.controllers
 import com.noicesoftware.roundtable.dealing.Dealer
 import com.noicesoftware.roundtable.model.Allegiance
 import com.noicesoftware.roundtable.model.Character
+import com.noicesoftware.roundtable.model.DealProbabilities
 import com.noicesoftware.roundtable.model.Game
 import com.noicesoftware.roundtable.model.Player
 import com.noicesoftware.roundtable.model.PlayersResponse
@@ -66,13 +67,48 @@ class GameController(
     fun players(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID): PlayersResponse {
         val game = gameRepository.get(id)
 
-        if (!game.players.containsKey(playerId))
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        checkPlayerInGame(game, playerId)
 
         val you = game.players[playerId] ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
         return PlayersResponse(
                 you = you,
                 others = redactPlayerInfo(game.players.values, you)
+        )
+    }
+
+    @PostMapping("{id}/deal")
+    fun deal(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID) {
+        val game = gameRepository.get(id)
+
+        checkPlayerInGame(game, playerId)
+        checkPlayerCount(game)
+
+        val updatedGame = dealer.deal(game)
+
+        logger.info("Deal game ${game.toLogStr()}: player ${game.players[playerId]?.toLogStr()}")
+        gameRepository.set(updatedGame)
+    }
+
+    @PostMapping("{id}/deal/probabilities")
+    fun probabilities(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID): DealProbabilities {
+        val game = gameRepository.get(id)
+
+        checkPlayerInGame(game, playerId)
+        checkPlayerCount(game)
+
+        return dealer.probabilities(game)
+    }
+
+    private fun checkPlayerInGame(game: Game, playerId: UUID) {
+        if (!game.players.containsKey(playerId))
+            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+    }
+
+    private fun checkPlayerCount(game: Game) {
+        val playerCount = game.players.count()
+        if (playerCount < 5 || playerCount > 10) throw ResponseStatusException(
+                HttpStatus.PRECONDITION_FAILED,
+                "Player count ($playerCount) must be between 5 and 10 inclusive"
         )
     }
 
@@ -90,25 +126,6 @@ class GameController(
             return null
 
         return otherPlayer.character!!.allegiance()
-    }
-
-    @PostMapping("{id}/deal")
-    fun deal(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID) {
-        val game = gameRepository.get(id)
-
-        if (!game.players.containsKey(playerId))
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
-
-        val playerCount = game.players.count()
-        if (playerCount < 5 || playerCount > 10) throw ResponseStatusException(
-                HttpStatus.PRECONDITION_FAILED,
-                "Player count ($playerCount) must be between 5 and 10 inclusive"
-        )
-
-        val updatedGame = dealer.deal(game)
-
-        logger.info("Deal game ${game.toLogStr()}: player ${game.players[playerId]?.toLogStr()}")
-        gameRepository.set(updatedGame)
     }
 
     companion object {

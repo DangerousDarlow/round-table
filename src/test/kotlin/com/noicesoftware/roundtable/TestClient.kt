@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.noicesoftware.roundtable.model.DealProbabilities
 import com.noicesoftware.roundtable.model.Player
 import com.noicesoftware.roundtable.model.PlayersResponse
 import org.springframework.boot.test.web.client.TestRestTemplate
@@ -88,5 +89,17 @@ class TestClient(
                 Void::class.java)
 
         return response.statusCode
+    }
+
+    fun probabilities(id: UUID, player: Player, header: HttpHeaders = player.header()): Pair<HttpStatus, DealProbabilities?> {
+        val response = restTemplate.postForEntity(
+                "${host()}/api/game/$id/deal/probabilities",
+                HttpEntity<Any>(header),
+                DealProbabilities::class.java)
+
+        return if (response.statusCode.is2xxSuccessful) {
+            Pair(response.statusCode, response.body)
+        } else
+            Pair(response.statusCode, null)
     }
 }
