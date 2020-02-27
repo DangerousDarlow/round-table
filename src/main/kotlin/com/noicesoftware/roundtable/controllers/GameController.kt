@@ -36,7 +36,7 @@ class GameController(
     @PostMapping("create")
     @ResponseStatus(HttpStatus.CREATED)
     fun create(@RequestHeader(PLAYER_HEADER) playerId: UUID, @RequestBody playerName: String): UUID {
-        val player = Player(playerId, playerName)
+        val player = Player(playerId, sanitisePlayerName(playerName))
         val game = Game(
                 id = UUID.randomUUID(),
                 created = OffsetDateTime.now(ZoneOffset.UTC),
@@ -52,7 +52,7 @@ class GameController(
     @PostMapping("{id}/join")
     fun join(@RequestHeader(PLAYER_HEADER) playerId: UUID, @PathVariable id: UUID, @RequestBody playerName: String) {
         val game = gameRepository.get(id)
-        val player = Player(playerId, playerName)
+        val player = Player(playerId, sanitisePlayerName(playerName))
 
         if (game.players.containsKey(player.id))
             return
@@ -98,6 +98,10 @@ class GameController(
 
         return dealer.probabilities(game)
     }
+
+    private val matchInvalidNameCharacters = Regex("[^A-Za-z0-9 ]")
+
+    private fun sanitisePlayerName(name: String): String = matchInvalidNameCharacters.replace(name, "")
 
     private fun checkPlayerInGame(game: Game, playerId: UUID) {
         if (!game.players.containsKey(playerId))
