@@ -99,9 +99,9 @@ class GameController(
         return dealer.probabilities(game)
     }
 
-    private val matchInvalidNameCharacters = Regex("[^A-Za-z0-9 ]")
+    private val matchInvalidNameCharacters = Regex("[!@#\$%^&*()_+{};':=,.<>?\\-\\[\\]\"|/]")
 
-    private fun sanitisePlayerName(name: String): String = matchInvalidNameCharacters.replace(name, "")
+    private fun sanitisePlayerName(name: String): String = matchInvalidNameCharacters.replace(name, "").trim()
 
     private fun checkPlayerInGame(game: Game, playerId: UUID) {
         if (!game.players.containsKey(playerId))
