@@ -6,6 +6,7 @@ import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isNullOrEmpty
 import com.noicesoftware.roundtable.model.Character
+import com.noicesoftware.roundtable.model.DealerStrategy
 import com.noicesoftware.roundtable.model.Player
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -72,8 +73,8 @@ class RoundTableApplicationTests {
         }
     }
 
-    private fun createFivePlayerGame(): UUID {
-        val id = client.createGameAndReturnId(anna)
+    private fun createFivePlayerGame(strategy: DealerStrategy = DealerStrategy.Unbiased): UUID {
+        val id = client.createGameAndReturnId(anna, strategy)
 
         // all players except anna join
         testPlayers.filter { it.value != anna }.forEach {
@@ -101,7 +102,7 @@ class RoundTableApplicationTests {
 
     @Test
     fun cannot_create_a_game_if_player_header_is_not_set() {
-        val (status, _) = client.createGame(anna, HttpHeaders())
+        val (status, _) = client.createGame(anna, header = HttpHeaders())
         assertThat(status).isEqualTo(HttpStatus.BAD_REQUEST)
     }
 

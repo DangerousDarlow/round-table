@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component
 @Component
 class Dealer(
         val deckBuilder: DeckBuilder,
-        val probabilityCalculator: ProbabilityCalculator,
+        val probabilityCalculatorStrategy: ProbabilityCalculatorStrategy,
         val logger: Logger
 ) {
 
@@ -17,6 +17,7 @@ class Dealer(
         val deck = deckBuilder.build(game.players.count()).toMutableMap()
 
         val updatedGame = game.copy()
+        val probabilityCalculator = probabilityCalculatorStrategy.getCalculator(updatedGame)
 
         updatedGame.players.forEach { (_, player) ->
             val totalLeftToPick = deck.values.sumBy { it }

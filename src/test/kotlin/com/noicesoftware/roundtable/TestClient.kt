@@ -4,7 +4,9 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.noicesoftware.roundtable.model.CreateGameRequest
 import com.noicesoftware.roundtable.model.DealProbabilities
+import com.noicesoftware.roundtable.model.DealerStrategy
 import com.noicesoftware.roundtable.model.Player
 import com.noicesoftware.roundtable.model.PlayersResponse
 import org.springframework.boot.test.web.client.TestRestTemplate
@@ -30,10 +32,15 @@ class TestClient(
         return headers
     }
 
-    fun createGame(player: Player, header: HttpHeaders = player.header()): Pair<HttpStatus, UUID?> {
+    fun createGame(
+            player: Player,
+            strategy: DealerStrategy = DealerStrategy.Unbiased,
+            header: HttpHeaders = player.header()
+    ): Pair<HttpStatus, UUID?> {
+        val request = CreateGameRequest(player.name, strategy)
         val response = restTemplate.postForEntity(
                 "${host()}/api/game/create",
-                HttpEntity(player.name, header),
+                HttpEntity(request, header),
                 String::class.java)
 
         return if (response.statusCode.is2xxSuccessful)
@@ -42,8 +49,8 @@ class TestClient(
             Pair(response.statusCode, null)
     }
 
-    fun createGameAndReturnId(player: Player): UUID {
-        val (status, id) = createGame(player)
+    fun createGameAndReturnId(player: Player, strategy: DealerStrategy = DealerStrategy.Unbiased): UUID {
+        val (status, id) = createGame(player, strategy)
         assertThat(status, name = "create response status").isEqualTo(HttpStatus.CREATED)
         assertThat(id, name = "create game id").isNotNull()
         return id!!

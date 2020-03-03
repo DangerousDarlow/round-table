@@ -3,6 +3,7 @@ package com.noicesoftware.roundtable.controllers
 import com.noicesoftware.roundtable.dealing.Dealer
 import com.noicesoftware.roundtable.model.Allegiance
 import com.noicesoftware.roundtable.model.Character
+import com.noicesoftware.roundtable.model.CreateGameRequest
 import com.noicesoftware.roundtable.model.DealProbabilities
 import com.noicesoftware.roundtable.model.Game
 import com.noicesoftware.roundtable.model.Player
@@ -35,11 +36,12 @@ class GameController(
 
     @PostMapping("create")
     @ResponseStatus(HttpStatus.CREATED)
-    fun create(@RequestHeader(PLAYER_HEADER) playerId: UUID, @RequestBody playerName: String): UUID {
-        val player = Player(playerId, sanitisePlayerName(playerName))
+    fun create(@RequestHeader(PLAYER_HEADER) playerId: UUID, @RequestBody request: CreateGameRequest): UUID {
+        val player = Player(playerId, sanitisePlayerName(request.player))
         val game = Game(
                 id = UUID.randomUUID(),
                 created = OffsetDateTime.now(ZoneOffset.UTC),
+                strategy = request.strategy,
                 players = mapOf(player.id to player)
         )
 
