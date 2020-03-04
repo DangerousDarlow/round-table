@@ -85,6 +85,8 @@ class RoundTableApplicationTests {
         return id
     }
 
+    val probabilityTolerance = 0.02
+
     @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
     @Test
     fun five_player_game_probability_distribution_matches_proof() {
@@ -93,11 +95,24 @@ class RoundTableApplicationTests {
         assertThat(status).isEqualTo(HttpStatus.OK)
 
         assertThat(probabilities).isNotNull()
-        val tolerance = 0.02
-        assertThat(probabilities!!.character[Character.Merlin]!!).isEqualTo(0.20, tolerance)
-        assertThat(probabilities!!.character[Character.Minion]!!).isEqualTo(0.40, tolerance)
-        assertThat(probabilities!!.character[Character.Servant]!!).isEqualTo(0.40, tolerance)
-        assertThat(probabilities!!.consecutive).isEqualTo(0.36, tolerance)
+        assertThat(probabilities!!.character[Character.Merlin]!!).isEqualTo(0.20, probabilityTolerance)
+        assertThat(probabilities!!.character[Character.Minion]!!).isEqualTo(0.40, probabilityTolerance)
+        assertThat(probabilities!!.character[Character.Servant]!!).isEqualTo(0.40, probabilityTolerance)
+        assertThat(probabilities!!.consecutive).isEqualTo(0.36, probabilityTolerance)
+    }
+
+    @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
+    @Test
+    fun five_player_biased_game_probability_distribution_matches_proof() {
+        val id = createFivePlayerGame(DealerStrategy.Biased)
+        val (status, probabilities) = client.probabilities(id, anna)
+        assertThat(status).isEqualTo(HttpStatus.OK)
+
+        assertThat(probabilities).isNotNull()
+        assertThat(probabilities!!.character[Character.Merlin]!!).isEqualTo(0.25, probabilityTolerance)
+        assertThat(probabilities!!.character[Character.Minion]!!).isEqualTo(0.37, probabilityTolerance)
+        assertThat(probabilities!!.character[Character.Servant]!!).isEqualTo(0.37, probabilityTolerance)
+        assertThat(probabilities!!.consecutive).isEqualTo(0.18, probabilityTolerance)
     }
 
     @Test

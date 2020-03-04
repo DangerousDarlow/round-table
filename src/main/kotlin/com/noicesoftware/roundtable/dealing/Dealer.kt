@@ -3,6 +3,7 @@ package com.noicesoftware.roundtable.dealing
 import com.noicesoftware.roundtable.model.Character
 import com.noicesoftware.roundtable.model.DealProbabilities
 import com.noicesoftware.roundtable.model.Game
+import com.noicesoftware.roundtable.model.Player
 import org.slf4j.Logger
 import org.springframework.stereotype.Component
 
@@ -50,7 +51,7 @@ class Dealer(
         return Character.Servant
     }
 
-    fun probabilities(game: Game): DealProbabilities {
+    fun probabilities(game: Game, player: Player): DealProbabilities {
         val characterCounts = Character.values().map { it to 0 }.toMap().toMutableMap()
         var timesSameCharacter = 0
         var lastCharacter: Character? = null
@@ -58,9 +59,7 @@ class Dealer(
         val iterations = 10000
 
         for (iteration in 1..iterations) {
-            val dummyGame = deal(game)
-
-            val player = dummyGame.players.values.first()
+            deal(game)
             characterCounts.merge(player.character!!, 1, Int::plus)
 
             if (player.character == lastCharacter)

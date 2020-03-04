@@ -98,7 +98,7 @@ class GameController(
         checkPlayerInGame(game, playerId)
         checkPlayerCount(game)
 
-        return dealer.probabilities(game)
+        return dealer.probabilities(game, game.players[playerId]!!)
     }
 
     private val matchInvalidNameCharacters = Regex("[!@#\$%^&*()_+{};':=,.<>?\\-\\[\\]\"|/]")
