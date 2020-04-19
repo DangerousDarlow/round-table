@@ -27,7 +27,7 @@ import java.time.ZoneOffset
 import java.util.UUID
 
 @RestController
-@RequestMapping("game")
+@RequestMapping("api/game")
 class GameController(
         val gameRepository: GameRepository,
         val dealer: Dealer,
