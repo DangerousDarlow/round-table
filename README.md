@@ -41,4 +41,4 @@ Build and run using the gradle tool
 
 The application has an HTTP API and is hosted on the Heroku platform. The API can be browsed using swagger at this address
 
-https://round-table-game.herokuapp.com/api/swagger-ui.html#/
+https://round-table-game.herokuapp.com/swagger-ui.html#/
