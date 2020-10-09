@@ -65,10 +65,10 @@ class RoundTableApplicationTests {
 
             // check servants can't see allegiance and other characters can
             players.others.forEach { otherPlayer ->
-                if (player.character == Character.Servant)
+                if (players.you.character == Character.Servant)
                     assertThat(otherPlayer.allegiance).isNull()
                 else
-                    assertThat(otherPlayer).isNotNull()
+                    assertThat(otherPlayer.allegiance).isNotNull()
             }
         }
     }
