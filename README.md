@@ -25,7 +25,7 @@ The table below shows character class counts and probabilities. _Ptwice_ is the 
 
 Building and running the application locally requires the following to be installed and configured.
 
- 1. Java runtime
+ 1. Java SDK
  1. Docker
 
 Clone the repository locally
